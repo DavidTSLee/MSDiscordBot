@@ -101,4 +101,3 @@ def is_bot(message):
 # client.loop.create_task(time_loop())
 client.loop.create_task(chat_loop())
 client.run(sys.argv[1])
-# client.run("NzMyODgwMzA3NjQ4MjAwNzg0.Xw7CaQ.JE_8TtuvZHRKqMTDbDvCPxXhfIw")
