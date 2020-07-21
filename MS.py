@@ -19,18 +19,6 @@ client = commands.Bot(command_prefix='.')
 @client.event
 async def on_ready():
     print("Logged on as {0}.".format(client.user))
-#
-#     test_channel = client.get_channel(276587544966332417)
-#
-#     timer_channel = client.get_channel(733246332046802944)
-#     utc = timezone('UTC')
-    # formatted_utc = "{}월{}일 | {}시{}분".format(utc_time.month, utc_time.day, utc_time.hour, utc_time.minute)
-    # await client.wait_until_ready()
-    # await timer_channel.edit(name="🕧{}".format(formatted_utc))
-
-    # for c in client.get_all_channels():
-    #     print(c)
-    # await test_channel.send("Currect time: {0}".format(time.gmtime()))
 
 
 @client.event
@@ -54,11 +42,14 @@ async def time_loop():
         print("LOOPING")
         utc = timezone('UTC')
         utc_time = utc.localize(datetime.utcnow())
-        # eastern_time, pacific_time, kor_time = return_times(utc_time)
-        formatted_utc = "{}월{}일 ㅣ {}시{}분".format(utc_time.month, utc_time.day, utc_time.hour, utc_time.minute)
+        wait_sec = 60*(10-(utc_time.minute%10))
+        print("waiting {} seconds".format(wait_sec))
+        await asyncio.sleep(wait_sec)
+
+        utc_time = datetime.utcnow()
+        formatted_utc = "{}월{}일ㅣ{}시{}분".format(utc_time.month, utc_time.day, utc_time.hour, utc_time.minute)
         full_string = "🕧{}".format(formatted_utc)
         await test_channel.edit(name=full_string)
-        await asyncio.sleep(600)
 
 async def chat_loop():
     await client.wait_until_ready()
@@ -98,6 +89,6 @@ def is_bot(message):
     return message.author.bot
 
 
-# client.loop.create_task(time_loop())
+client.loop.create_task(time_loop())
 client.loop.create_task(chat_loop())
 client.run(sys.argv[1])
