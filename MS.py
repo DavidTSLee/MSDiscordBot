@@ -1,7 +1,5 @@
 # 갤길용 디스코드 봇 (WIP):
 # TODO:
-#   1) Show Time (UTC, update every 5 ~10 minutes)
-#   2) Alert for flag
 #   3) Show days/hours remaining until reset (daily/weekly)
 #   Stretch goal: show when server closes need research on this
 
@@ -14,6 +12,17 @@ import sys
 from discord import channel
 
 client = commands.Bot(command_prefix='.')
+
+# Channels
+time_channel = 733246332046802944
+text_channel = 733247587473293352
+flag_channel = 735257240772149258
+
+
+# Roles
+member_id = 735261202887999548
+
+utc_flags = [11, 18, 20, 21, 22]
 
 
 @client.event
@@ -33,27 +42,31 @@ async def on_message(message):
         client.clear()
 
 
+
 # background task
 async def time_loop():
-    rest_time = 600
     await client.wait_until_ready()
-    test_channel = client.get_channel(733246332046802944)
+    test_channel = client.get_channel(time_channel)
     while not client.is_closed():
-        print("LOOPING")
         utc = timezone('UTC')
         utc_time = utc.localize(datetime.utcnow())
         wait_sec = 60*(10-(utc_time.minute%10))
-        print("waiting {} seconds".format(wait_sec))
         await asyncio.sleep(wait_sec)
 
-        utc_time = datetime.utcnow()
+        # ping for race if it is 10 minutes prior to race time
+        ping_channel = client.get_channel(flag_channel)
+        if utc_time.minute == 50 and utc_time.hour in utc_flags:
+            message = await ping_channel.send("<@&{}> 10분 뒤 7시 플래그 레이스가 시작 됩니다.".format(member_id)) if utc_time.hour == 18 else await ping_channel.send("<@{}> 10분 뒤 9시 플래그 레이스가 시작 됩니다".format(member_id))
+            print("RACE TIME")
+
+        # Edit channel name to show UTC time
         formatted_utc = "{}월{}일ㅣ{}시{}분".format(utc_time.month, utc_time.day, utc_time.hour, utc_time.minute)
         full_string = "🕧{}".format(formatted_utc)
         await test_channel.edit(name=full_string)
 
 async def chat_loop():
     await client.wait_until_ready()
-    test_channel = client.get_channel(733247587473293352)
+    test_channel = client.get_channel(text_channel)
 
     while not client.is_closed():
         # Check if there is bot messages. If there is bot message, edit that. If not, send a new message
@@ -62,21 +75,20 @@ async def chat_loop():
         # Get time in multiple time zone
         utc = timezone('UTC')
         utc_time = utc.localize(datetime.utcnow())
-
+        print(utc_time.weekday())
         time_collection = return_times(utc_time)
         formatted_string = format_time_string(time_collection)
-        # print("formatted string: {}".format(formatted_string))
+        formatted_string = add_reset_time(formatted_string, utc_time)
 
-        # formatted_utc = "{}월{}일 | {}시{}분".format(utc_time.month, utc_time.day, utc_time.hour, utc_time.minute)
-        # full_string = "🕧{}".format(formatted_utc)
-        result_msg = await bot_msg.edit(content=formatted_string) if bot_msg else await test_channel.send(formatted_string)
-        print("Result message: {}".format(result_msg))
-        await asyncio.sleep(30)
+        result_msg = await bot_msg.edit(content=formatted_string) if bot_msg else \
+            await test_channel.send(formatted_string)
+        await asyncio.sleep(300)
 
 def format_time_string(msg_list):
     ret_string = ""
     for msg in msg_list:
-        ret_string += "{}\t{}월{}일 \t| \t{}시{}분 \r\n".format(msg[0], msg[1].month, msg[1].day, msg[1].hour, msg[1].minute)
+        ret_string += "{}\t{}월{}일 \t| \t{}시{}분 \r\n".format(msg[0], msg[1].month,
+                                                            msg[1].day, msg[1].hour, msg[1].minute)
     return ret_string
 
 def return_times(utc_time):
@@ -87,6 +99,18 @@ def return_times(utc_time):
 
 def is_bot(message):
     return message.author.bot
+
+def add_reset_time(string, time):
+    # Show # of hours remaining until daily reset and weekly reset
+    daily_reset_hr = 23 - time.hour
+    daily_reset_minute = 60 - time.minute
+    daily_reset_str = "{}시간 {}분 뒤".format(daily_reset_hr, daily_reset_minute) if daily_reset_hr != 0 \
+        else "{}분 뒤".format(daily_reset_minute)
+    weekly_reset_day = (2 - time.weekday()) % 7
+    weekly_reset_str = "{}일 {}".format(weekly_reset_day, daily_reset_str) if weekly_reset_day != 0 \
+        else "{}".format(daily_reset_str)
+    ret_string = "{}\n일간 리셋: {}\n주간 리셋: {}".format(string,daily_reset_str, weekly_reset_str)
+    return ret_string
 
 
 client.loop.create_task(time_loop())
