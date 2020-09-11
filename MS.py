@@ -14,7 +14,7 @@ import asyncio
 import json
 from discord.ext import commands
 import sys
-from discord import channel
+import discord
 
 client = commands.Bot(command_prefix='$')
 
@@ -132,12 +132,18 @@ async def time_loop():
         full_string = "🕧{}".format(formatted_utc)
         await test_channel.edit(name=full_string)
 
+        # change status time as well
+        status_time = discord.Game(full_string)
+        await client.change_presence(activity=status_time)
+
+
 # background task
 async def chat_loop():
     await client.wait_until_ready()
     test_channel = client.get_channel(text_channel)
 
     while not client.is_closed():
+
         # Check if there is bot messages. If there is bot message, edit that. If not, send a new message
         bot_msg = await test_channel.history().find(is_bot)
 
@@ -190,7 +196,7 @@ def parse_date(time_zone, day, hour, minute):
     curr_time = datetime.utcnow()
     if time_zone != "UTC":
         curr_time.astimezone(TIME_ZONE[time_zone])
-    new_time = 
+    # new_time =
     curr_time.hour = hour
     print(curr_time)
 
